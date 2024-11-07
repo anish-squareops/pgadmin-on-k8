@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgadmin
+spec:
+  selector:
+    matchLabels:
+      app: pgadmin
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: pgadmin
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: karpenter.sh/provisioner-name
+                    operator: In
+                    values:
+                      - sandbox-ng
+      initContainers:
+        - name: init-permissions
+          image: busybox
+          command: ['sh', '-c', 'mkdir -p /var/lib/pgadmin/sessions && chmod -R 777 /var/lib/pgadmin']
+          volumeMounts:
+            - name: pgadmin-storage
+              mountPath: /var/lib/pgadmin
+
+      containers:
+        - name: pgadmin4
+          image: dpage/pgadmin4
+          env:
+            - name: PGADMIN_DEFAULT_EMAIL
+              value: "anish.gupta@nimbbl.biz"
+            - name: PGADMIN_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pgadmin-secret
+                  key: pgadmin-default-password
+            - name: PGADMIN_PORT
+              value: "80"
+          ports:
+            - containerPort: 80
+              name: pgadminport
+          volumeMounts:
+            - name: pgadmin-config-volume
+              mountPath: /pgadmin4/servers.json
+              subPath: servers.json
+            - name: pgadmin-storage
+              mountPath: /var/lib/pgadmin  # Mounting the PVC here
+      volumes:
+        - name: pgadmin-config-volume
+          configMap:
+            name: pgadmin-config
+        - name: pgadmin-storage
+          persistentVolumeClaim:
+            claimName: pgadmin-storage   # Referencing the PVC
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgadmin
+  labels:
+    app: pgadmin
+spec:
+  selector:
+    app: pgadmin
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP

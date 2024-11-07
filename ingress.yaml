@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pgadmin-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  labels:
+    app: pgadmin
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - pgadmin.sandbox.nimbbl.tech
+      secretName: pgadmin-ingress-secret
+  rules:
+    - host: pgadmin.sandbox.nimbbl.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pgadmin
+                port:
+                  number: 80

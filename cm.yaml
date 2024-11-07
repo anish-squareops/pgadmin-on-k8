@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: pgadmin-config
+data:
+ servers.json: |
+   {
+       "Servers": {
+         "1": {
+           "Name": "PostgreSQL DB",
+           "Group": "Servers",
+           "Port": 5432,
+           "Username": "readonly",
+           "Host": "postgres2-postgresql-primary.sandbox.svc.cluster.local",
+           "MaintenanceDB": "atm_sandbox",
+           "Shared": true
+         }
+       }
+   }
